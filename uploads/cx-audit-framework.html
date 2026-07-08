@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CX Journey Audit Framework — Dyson Case · Mikhail Bogatyrev</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ivory:#F6F4EF; --porcelain:#FFF; --noir:#111; --charcoal:#1C1C1C;
+  --gold:#A8873B; --gold-soft:#C9AE7C; --hairline:#E3DED3; --hairline-d:#2E2E2E;
+  --mist:#8A8578; --stone:#B9B4A6;
+  --neg:#B54A3F; --pos:#4E7F6B; --neu:#77726A; --violet:#B9AEDC;
+  --serif:'Cormorant Garamond',Didot,Georgia,serif;
+  --sans:'Jost','Helvetica Neue',Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--noir);color:var(--ivory);font-family:var(--sans);font-weight:300;line-height:1.6}
+.wrap{max-width:1280px;margin:0 auto;padding:0 32px}
+.kicker{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+header{padding:72px 0 40px;border-bottom:1px solid var(--hairline-d)}
+header h1{font-family:var(--serif);font-weight:400;font-size:clamp(2.2rem,5vw,4rem);line-height:1.1;margin:18px 0 14px}
+header p{color:var(--stone);max-width:720px;font-size:15px}
+.legend{display:flex;gap:28px;flex-wrap:wrap;margin-top:28px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone)}
+.legend span{display:flex;align-items:center;gap:8px}
+.dotd{width:10px;height:10px;display:inline-block}
+.stage-nav{position:sticky;top:0;background:rgba(17,17,17,.96);z-index:50;border-bottom:1px solid var(--hairline-d)}
+.grid{display:grid;grid-template-columns:140px repeat(5,1fr);min-width:1080px}
+.rowlab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--mist);padding:22px 14px 10px 0;border-right:1px solid var(--hairline-d)}
+.stagehead{padding:18px 14px;font-family:var(--serif);font-size:19px;font-weight:500;letter-spacing:.02em;border-right:1px solid var(--hairline-d)}
+.stagehead small{display:block;font-family:var(--sans);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.cell{padding:16px 14px 22px;border-right:1px solid var(--hairline-d);border-top:1px solid var(--hairline-d);font-size:12.5px;color:var(--stone)}
+.grid > .cell:nth-child(6n+2), .grid > .stagehead:nth-child(6n+2){border-left:1px solid var(--hairline-d)}
+.card{background:var(--charcoal);border-left:2px solid var(--violet);padding:10px 12px;margin-bottom:8px;color:var(--ivory);font-size:12.5px}
+.tp{display:inline-block;border:1px solid var(--hairline-d);padding:3px 9px;margin:0 6px 6px 0;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
+.exp{font-style:italic;font-family:var(--serif);font-size:15px;color:var(--ivory);line-height:1.5}
+/* emotion curve */
+.curveband{border-top:1px solid var(--hairline-d)}
+.curveband svg{display:block;width:100%;height:110px}
+/* UX bars */
+.uxbar{margin-bottom:14px;cursor:pointer}
+.uxbar .lab{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);display:flex;justify-content:space-between;margin-bottom:5px}
+.uxbar .lab b{color:var(--gold);font-weight:500}
+.track{display:flex;height:14px;background:#191919;border:1px solid var(--hairline-d)}
+.seg-n{background:var(--neg)} .seg-p{background:var(--pos)} .seg-x{background:var(--neu)}
+.track div{transition:filter .2s}
+.uxbar:hover .track div{filter:brightness(1.25)}
+.hint{font-size:10px;color:var(--mist);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+/* findings drawer */
+#drawer{position:fixed;inset:0;background:rgba(10,10,10,.55);display:none;z-index:100}
+#drawer.open{display:block}
+#panel{position:absolute;top:0;right:0;width:min(560px,100%);height:100%;background:var(--ivory);color:var(--noir);overflow-y:auto;padding:48px 40px}
+#panel .kicker{color:var(--gold)}
+#panel h2{font-family:var(--serif);font-weight:500;font-size:30px;margin:10px 0 4px}
+#panel .score{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--mist);margin-bottom:26px}
+.finding{border-top:1px solid var(--hairline);padding:13px 0 13px 22px;position:relative;font-size:14px;color:#333}
+.finding::before{content:'';position:absolute;left:0;top:19px;width:9px;height:9px}
+.finding.n::before{background:var(--neg)} .finding.p::before{background:var(--pos)} .finding.x::before{background:var(--neu)}
+#close{position:absolute;top:22px;right:26px;background:none;border:none;font-size:22px;color:var(--noir);cursor:pointer;font-family:var(--sans);font-weight:300}
+/* footer */
+footer{border-top:1px solid var(--hairline-d);margin-top:56px;padding:36px 0 64px;color:var(--mist);font-size:12px}
+footer b{color:var(--stone);font-weight:400}
+.method{background:var(--charcoal);border-left:2px solid var(--gold);padding:20px 24px;margin:40px 0;font-size:13px;color:var(--stone);max-width:860px}
+.scrollnote{display:none;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist);padding:10px 0}
+.gridscroll{overflow-x:auto}
+@media(max-width:1140px){.scrollnote{display:block}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <div class="kicker">CX Journey Audit Framework · As applied to Dyson</div>
+  <h1>Where the journey breaks,<br>the P&amp;L leaks.</h1>
+  <p>A full-funnel shopper-experience audit: five journey stages, mapped scenarios and expectations, every touchpoint tested hands-on, every friction logged as evidence. This is the framework behind the Dyson eCommerce turnaround — reusable for any premium brand, in any market.</p>
+  <div class="legend">
+    <span><i class="dotd" style="background:var(--violet)"></i>Framework substance</span>
+    <span><i class="dotd" style="background:var(--neg)"></i>Friction found</span>
+    <span><i class="dotd" style="background:var(--pos)"></i>Works well</span>
+    <span><i class="dotd" style="background:var(--neu)"></i>Neutral</span>
+    <span style="color:var(--gold)">Click any experience bar for the evidence log</span>
+  </div>
+</header>
+
+<div class="scrollnote">Scroll sideways — the journey is wide</div>
+<div class="gridscroll">
+<div class="grid" id="grid"></div>
+
+<div class="curveband">
+  <div style="display:grid;grid-template-columns:140px 1fr;min-width:1080px">
+    <div class="rowlab" style="border-top:none">Emotion<br>curve</div>
+    <svg viewBox="0 0 1000 110" preserveAspectRatio="none" aria-label="Emotion curve across stages">
+      <path d="M 60 52 C 160 66, 220 74, 300 72 C 420 70, 440 96, 500 94 C 560 92, 600 60, 700 46 C 790 36, 850 30, 940 24"
+            fill="none" stroke="#A8873B" stroke-width="1.5"/>
+      <circle cx="100" cy="57" r="5" fill="#B54A3F"/>
+      <circle cx="300" cy="72" r="5" fill="#B54A3F"/>
+      <circle cx="500" cy="94" r="5" fill="#B54A3F"/>
+      <circle cx="700" cy="46" r="5" fill="#4E7F6B"/>
+      <circle cx="900" cy="26" r="5" fill="#4E7F6B"/>
+      <text x="100" y="40" text-anchor="middle" fill="#8A8578" font-size="9" letter-spacing="1.5" font-family="Jost">WARY</text>
+      <text x="300" y="55" text-anchor="middle" fill="#8A8578" font-size="9" letter-spacing="1.5" font-family="Jost">FRUSTRATED</text>
+      <text x="500" y="78" text-anchor="middle" fill="#8A8578" font-size="9" letter-spacing="1.5" font-family="Jost">ABANDONING</text>
+      <text x="700" y="30" text-anchor="middle" fill="#8A8578" font-size="9" letter-spacing="1.5" font-family="Jost">RELIEVED</text>
+      <text x="900" y="10" text-anchor="middle" fill="#8A8578" font-size="9" letter-spacing="1.5" font-family="Jost">SURPRISED</text>
+    </svg>
+  </div>
+</div>
+</div>
+
+<div class="method">
+  <span class="kicker">Method note</span><br><br>
+  Every finding below is a first-hand observation from mystery-shopping the live journey: real search queries, real carts, real callback forms, real deliveries. Emotion and importance curves are derived from the balance and weight of the evidence at each stage. The same protocol scales to any brand portfolio — swap the touchpoints, keep the discipline.
+</div>
+
+<footer>
+  <b>CX Journey Audit Framework</b> · Mikhail Bogatyrev · applied here to Dyson (case study), designed for reuse across premium &amp; luxury portfolios · Full case: <a href="https://miro.com/app/board/uXjVItYJA70=/?share_link_id=126839783131" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:none;border-bottom:1px solid var(--gold);padding-bottom:1px">view the full board on Miro ↗</a>
+</footer>
+</div>
+
+<div id="drawer" role="dialog" aria-modal="true">
+  <div id="panel">
+    <button id="close" aria-label="Close">✕</button>
+    <div class="kicker" id="p-stage"></div>
+    <h2 id="p-title"></h2>
+    <div class="score" id="p-score"></div>
+    <div id="p-findings"></div>
+  </div>
+</div>
+
+<script>
+const DATA = [
+ {
+  stage:"Interest — or its absence",
+  steps:["I want clean air in my apartment.","I want my hair not to split after drying.","I'm looking for a birthday gift for my wife.","I want salon styling at home."],
+  touchpoints:["Contextual ads","Organic search","Digital advertising","Social networks","KOL integrations","Friends' advice"],
+  expectation:"I meet content telling me why this brand — healthy hair, professional styling at home. Ads and organic results answer my need, not just my query.",
+  bars:[{name:"Stage experience",findings:[
+    {t:"n",x:"Query “gift for a woman”: zero brand recommendations — a major gifting occasion invisible to the funnel."},
+    {t:"n",x:"Need-based queries (“clean the air in the apartment”, “hair doesn't split after drying”) return the brand's product cards — but from third-party sellers, not the brand."},
+    {t:"p",x:"First YouTube video for the hair-care query: a blogger using the brand's dryer — organic advocacy exists."},
+    {t:"p",x:"Friends' recommendations near-unanimous: “the best vacuum is Dyson” — word of mouth is the strongest asset."}
+  ]}]
+ },
+ {
+  stage:"Search",
+  steps:["“Gift for March 8th” — I want a styler for my wife.","I love high-tech gadgets; asking friends and searching “best stick vacuum”."],
+  touchpoints:["Search ads","Organic results","Marketplace catalogues","Retailer sites","YouTube","Remarketing"],
+  expectation:"The brand owns its own demand: official store and authorised retailers rank first; the product I want is available where I land.",
+  bars:[{name:"Stage experience",findings:[
+    {t:"n",x:"First five paid results for the styler led to counterfeit “Dyson Online Store” sites."},
+    {t:"n",x:"Official store ranked #7 organically for “styler” — and the product was absent from the landing page (the right page sat at position 12)."},
+    {t:"n",x:"Marketplace catalogue page one: no original cards, 20+ mimicking products, 3 likely counterfeits."},
+    {t:"n",x:"Key retailer's styler page: product hidden because out of stock — recommendation: never hide the card, capture demand instead."},
+    {t:"n",x:"Competitor (Polaris) outranked the brand on its own category terms; low share of voice across the stage."},
+    {t:"n",x:"Counterfeit ads served directly on the brand's own YouTube videos."},
+    {t:"p",x:"YouTube “styler” results almost entirely about the brand — video SEO works."},
+    {t:"p",x:"Brand vacuum ranked #1 for “best vacuum cleaner”; flagship store in GUM surfaced in results."}
+  ]}]
+ },
+ {
+  stage:"Comparison & purchase",
+  steps:["I want to buy the styler as a gift — anywhere that's easy.","I want to buy on the marketplace I trust.","I want to compare prices on Yandex Market.","I want to request a callback."],
+  touchpoints:["shop.dyson.ru","OZON","Wildberries","Yandex Market","AliExpress · Technopark · Svyaznoy"],
+  expectation:"I find official product cards with rich content on page one, compare confidently, and buy — or a consultant calls me back within 3 minutes.",
+  bars:[
+   {name:"Brand D2C store",findings:[
+    {t:"n",x:"“In 99% of cases the product is out of stock” — and there is no “notify me when available” button."},
+    {t:"n",x:"Callback form demands email, city and contact method; agreement checkboxes block completion; switching windows loses the request. (It accepted “Sydney” as a city.)"},
+    {t:"n",x:"Video-chat call unanswered; callback request ignored; after order cancellation nobody called to ask why."},
+    {t:"n",x:"Chat messages sent off-hours are never answered; newsletter signup sends nothing — not even a welcome email."},
+    {t:"n",x:"Active and inactive buttons share the same colour — shoppers click dead zones."},
+    {t:"n",x:"Cart bug prevented completing an order; support couldn't resolve it."},
+    {t:"n",x:"Three near-identical domains with different content sets; circular redirects between them."},
+    {t:"p",x:"Comparison page genuinely convenient; cart supports promo codes; phone-number auth; pre-filled address fields."},
+    {t:"p",x:"Consultation booking easy to find, with instant email confirmation. When stock existed, “the order was placed easily and quickly.”"},
+    {t:"x",x:"Payment method on delivery not specified anywhere pre-checkout."}
+   ]},
+   {name:"OZON",findings:[
+    {t:"n",x:"First search result for the styler: counterfeit. The original — unavailable."},
+    {t:"n",x:"Official listing lacks video; description not SEO-optimised; spec sheet has punctuation errors."},
+    {t:"n",x:"Customer questions sit unanswered for days (“made in Malaysia vs Philippines?” — silence)."},
+    {t:"p",x:"The styler holds the highest listing rating in its category; 16 customer video reviews — advocates do the brand's work."}
+   ]},
+   {name:"Wildberries",findings:[
+    {t:"n",x:"Styler absent from the stylers category entirely."},
+    {t:"n",x:"2 of 3 brand products sold by a Belarusian reseller with low-quality assets."},
+    {t:"n",x:"Grey-import listings claiming to be “original” — no brand governance on the fastest-growing platform (+93% GMV)."}
+   ]},
+   {name:"Yandex Market",findings:[
+    {t:"n",x:"Brand-shop category missing its photo; most cards have a single, poor-quality image and no rich content."}
+   ]}
+  ]
+ },
+ {
+  stage:"Delivery",
+  steps:["I placed the order and am awaiting delivery."],
+  touchpoints:["Phone","SMS","WhatsApp","Telegram","Pickup point"],
+  expectation:"Courier arrives on time, calls 60 minutes ahead, presents well — and the box honours what's inside it.",
+  bars:[{name:"Stage experience",findings:[
+    {t:"p",x:"Courier called ahead, happily postponed 30 minutes, neat and polite."},
+    {t:"p",x:"Four delivery slots offered for the day after tomorrow."},
+    {t:"n",x:"No same-day or next-day option for a premium purchase."},
+    {t:"n",x:"A $600 product arrived wrapped in torn white stretch-film with an improvised courier handle — the unboxing moment destroyed at the last metre."}
+  ]}]
+ },
+ {
+  stage:"NPS & feedback",
+  steps:["I want to leave feedback about my experience."],
+  touchpoints:["SMS","Call","Email"],
+  expectation:"A short five-point form with common categories — as effortless as rating a ride.",
+  bars:[{name:"Stage experience",findings:[
+    {t:"p",x:"Immediately after speaking with a representative, an email arrived inviting feedback — the loop exists where it's wired."}
+  ]}]
+ }
+];
+
+const grid = document.getElementById('grid');
+function esc(s){return s.replace(/</g,'&lt;')}
+
+/* Row 0: stage heads */
+grid.insertAdjacentHTML('beforeend','<div class="rowlab" style="border-top:none"></div>');
+DATA.forEach((d,i)=>grid.insertAdjacentHTML('beforeend',
+ `<div class="stagehead"><small>Stage 0${i+1}</small>${esc(d.stage)}</div>`));
+
+/* Row: journey steps */
+grid.insertAdjacentHTML('beforeend','<div class="rowlab">Journey<br>steps</div>');
+DATA.forEach(d=>grid.insertAdjacentHTML('beforeend',
+ `<div class="cell">${d.steps.map(s=>`<div class="card">${esc(s)}</div>`).join('')}</div>`));
+
+/* Row: touchpoints */
+grid.insertAdjacentHTML('beforeend','<div class="rowlab">Touch-<br>points</div>');
+DATA.forEach(d=>grid.insertAdjacentHTML('beforeend',
+ `<div class="cell">${d.touchpoints.map(t=>`<span class="tp">${esc(t)}</span>`).join('')}</div>`));
+
+/* Row: expectations */
+grid.insertAdjacentHTML('beforeend','<div class="rowlab">Expect-<br>ations</div>');
+DATA.forEach(d=>grid.insertAdjacentHTML('beforeend',
+ `<div class="cell"><div class="exp">“${esc(d.expectation)}”</div></div>`));
+
+/* Row: experience bars */
+grid.insertAdjacentHTML('beforeend','<div class="rowlab">User<br>experience<br><span style="color:var(--gold)">· tested live</span></div>');
+DATA.forEach((d,di)=>{
+  let html='<div class="cell">';
+  d.bars.forEach((b,bi)=>{
+    const n=b.findings.filter(f=>f.t==='n').length,
+          p=b.findings.filter(f=>f.t==='p').length,
+          x=b.findings.filter(f=>f.t==='x').length,
+          tot=n+p+x, score=Math.round(p/(p+n||1)*100);
+    html+=`<div class="uxbar" data-d="${di}" data-b="${bi}" role="button" tabindex="0" aria-label="${esc(b.name)} findings">
+      <div class="lab"><span>${esc(b.name)}</span><b>${score}%</b></div>
+      <div class="track">
+        <div class="seg-n" style="width:${n/tot*100}%"></div>
+        <div class="seg-x" style="width:${x/tot*100}%"></div>
+        <div class="seg-p" style="width:${p/tot*100}%"></div>
+      </div>
+      <div class="hint">${n} friction · ${p} positive${x?` · ${x} neutral`:''}</div>
+    </div>`;
+  });
+  grid.insertAdjacentHTML('beforeend', html+'</div>');
+});
+
+/* drawer */
+const drawer=document.getElementById('drawer');
+function openPanel(di,bi){
+  const d=DATA[di], b=d.bars[bi];
+  const n=b.findings.filter(f=>f.t==='n').length, p=b.findings.filter(f=>f.t==='p').length;
+  document.getElementById('p-stage').textContent='Evidence log · '+d.stage;
+  document.getElementById('p-title').textContent=b.name;
+  document.getElementById('p-score').textContent=`${n} frictions found · ${p} strengths confirmed`;
+  document.getElementById('p-findings').innerHTML=
+    b.findings.map(f=>`<div class="finding ${f.t}">${esc(f.x)}</div>`).join('');
+  drawer.classList.add('open');document.body.style.overflow='hidden';
+}
+grid.addEventListener('click',e=>{
+  const bar=e.target.closest('.uxbar'); if(bar) openPanel(+bar.dataset.d,+bar.dataset.b);
+});
+grid.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){const bar=e.target.closest('.uxbar'); if(bar) openPanel(+bar.dataset.d,+bar.dataset.b);}
+});
+function closePanel(){drawer.classList.remove('open');document.body.style.overflow=''}
+document.getElementById('close').addEventListener('click',closePanel);
+drawer.addEventListener('click',e=>{if(e.target===drawer)closePanel()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel()});
+</script>
+</body>
+</html>
